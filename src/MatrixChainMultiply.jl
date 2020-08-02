@@ -5,21 +5,24 @@ export matrixchainmultiply
 ### mcm = matrix chain multiply
 
 """
-  `matrixchainmultiply(A,B,C,D,...)`
+  `matrixchainmultiply(compose, A,B,C,D,...)`
 
 Algorithm for **Matrix-chain multiplication** (where matrices are also
 generalizations of scalars and vectors). Using *Cormen* Ed. 3, p. 371.
 
 Arguments
 ---------
-`A,B,C,...` are matrices, vectors, or scalars of appropriate sizes.
+* `A,B,C,...` are matrices, vectors, or scalars of appropriate sizes.
+* `compose` is a function to multipy them (e.g. `*`)
+
 
 """
-function matrixchainmultiply(A...)
+function matrixchainmultiply(compose::C, A...) where {C}
   p = mcm_makep(A...)
   m, s, n = mcm_cost_matrices(p)
-  mcm_compute(s, 1, n, A...)
+  mcm_compute(compose, s, 1, n, A...)
 end
+
 """
   `matrixchainmultiply(fn_name::String, A...)`
 
@@ -54,7 +57,7 @@ end
 function matrixchainmultiply_fn(fn_name::String, A...)
   p = mcm_makep(A...)
   m, s, n = mcm_cost_matrices(p)
-  ex = parse(fn_name * "(A...) = " * mcm_print(s, 1, n))
+  ex = string(fn_name * "(A...) = " * mcm_print(s, 1, n))
   cost = m[1,n]
   println("Operation: $ex")
   println("Cost: $cost")
@@ -111,20 +114,21 @@ The function describing the optimal order for the input of a specific size.
 """
 function mcm_optimalorder(s, i, j, mats...)
   if i!=j
-    m1 = mcm_compute(s, i, s[i, j-1], mats...)
-    m2 = mcm_compute(s, s[i, j-1] + 1, j, mats...)
-    return :(m1 * m2)
+    m1 = mcm_optimalorder(s, i, s[i, j-1], mats...)
+    m2 = mcm_optimalorder(s, s[i, j-1] + 1, j, mats...)
+    return :($m1 * $m2)
   else
     return mats[i]
   end
 end
 
+
 "Do the actual matrix chain multiplication computation."
-function mcm_compute(s, i, j, mats...)
-  if i!=j
-    m1 = mcm_compute(s, i, s[i, j-1], mats...)
-    m2 = mcm_compute(s, s[i, j-1] + 1, j, mats...)
-    return (m1 * m2)
+function mcm_compute(compose::C, s::Matrix, i::Int, j::Int, mats...) where {C}
+  if i != j
+    m1 = mcm_compute(compose, s, i, s[i, j-1], mats...)
+    m2 = mcm_compute(compose, s, s[i, j-1] + 1, j, mats...)
+    return compose(m1,  m2)
   else
     return mats[i]
   end
@@ -160,9 +164,9 @@ Matrix-style sizes. Return type looks like `(i,j)` where `i` and `j` are `Ints`.
 If other packages with matrix types (e.g., OpenCl or ArrayFire) inherit from
 AbstractArray, there shouldn't be issues with other packages using this one.
 """
-msize{T}(m::AbstractArray{T,2}) = size(m)
-msize{T}(v::AbstractArray{T,1}) = (size(v)[1], 1)
-msize{T<:Number}(s::T) = (1, 1)
+msize(m::AbstractMatrix) = size(m)
+msize(v::AbstractVector) = (size(v)[1], 1)
+msize(s::Number) = (1, 1)
 
 
 end # module

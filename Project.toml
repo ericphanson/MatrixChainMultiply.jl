@@ -1,0 +1,4 @@
+name = "MatrixChainMultiply"
+uuid = "94bd13bb-04c4-4cc1-83f5-dbc4385740bc"
+authors = ["ericphanson <5846501+ericphanson@users.noreply.github.com>"]
+version = "0.1.0"
